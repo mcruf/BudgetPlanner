@@ -12,7 +12,10 @@
 #~~~~~~~~~~~~~~~~
 # Load libraries
 #~~~~~~~~~~~~~~~~
+library(shiny)
 library(shinydashboard)
+library(DT)
+
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~
@@ -29,10 +32,30 @@ header <- dashboardHeader(title = "Budget Planner")
 #~~~~~~~~~~~~
 sidebar <-  dashboardSidebar(
   
+  ## File input widget
+  # fileInput(inputId = "filedata",
+  #           label ="Upload CSV file",
+  #           multiple=FALSE, accept=(".csv")),
+  
+  
   sidebarMenu(
+    
+    # Interactive Inputs: Integrated into the sidebar for user interaction
+    fileInput(inputId = "filedata",
+              label ="Upload CSV file",
+              multiple=FALSE, accept=(".csv")),
+    
+    
+    # Navigation Tabs: Each tab links to different content in the main body
     menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
-    menuItem("Table", tabName = "table", icon = icon("th")),
+    # menuItem("Dashboard", fileInput("upload", "Upload csv file"),
+    #          tabName = "dashboard", icon = icon("dashboard")),
+    # 
+    menuItem("Data", tabName = "datatable", icon = icon("database")),
+    
+    # External Link: Opens in a new tab or window
     menuItem("GitHub", href = "https://github.com/mcruf", icon = icon("github"))
+    
     
   )
 )
@@ -43,12 +66,34 @@ sidebar <-  dashboardSidebar(
 #~~~~~~~~
 body <- dashboardBody(
   
-  # Dynamic valueBoxes
-  valueBoxOutput("TAI"), #Total annual income
-  valueBoxOutput("TAE"), #Total annual expense
-  valueBoxOutput("TAS") #Total annual savings
-                      
-  ) 
+  
+  tabItems(
+    
+    ## Dashboard page
+    tabItem(
+      tabName = "dashboard",
+      # Dynamic valueBoxes
+      valueBoxOutput("TAI"), #Total annual income
+      valueBoxOutput("TAE"), #Total annual expense
+      valueBoxOutput("TAS"), #Total annual savings 
+    ),
+    
+    ## Data table page
+    tabItem(
+      tabName = "datatable",
+      dataTableOutput("mydata")
+      
+    )
+    
+  )
+  
+  
+  
+  # Data table
+  #tabItem(tabName = "table", dataTableOutput("data"))
+  
+  
+) 
 
 
 # 4) Put all together
@@ -59,26 +104,3 @@ ui <- dashboardPage(header,
                     skin ='yellow')
 
 
-
-# # Define UI for application that draws a histogram
-# fluidPage(
-# 
-#     # Application title
-#     titlePanel("Old Faithful Geyser Data"),
-# 
-#     # Sidebar with a slider input for number of bins
-#     sidebarLayout(
-#         sidebarPanel(
-#             sliderInput("bins",
-#                         "Number of bins:",
-#                         min = 1,
-#                         max = 50,
-#                         value = 30)
-#         ),
-# 
-#         # Show a plot of the generated distribution
-#         mainPanel(
-#             plotOutput("distPlot")
-#         )
-#     )
-# )
