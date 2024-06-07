@@ -43,7 +43,8 @@ sidebar <-  dashboardSidebar(
     # Interactive Inputs: Integrated into the sidebar for user interaction
     fileInput(inputId = "filedata",
               label ="Upload CSV file",
-              multiple=FALSE, accept=(".csv")),
+              multiple=FALSE, 
+              accept=(".csv")),
     
     
     # Navigation Tabs: Each tab links to different content in the main body
@@ -66,16 +67,40 @@ sidebar <-  dashboardSidebar(
 #~~~~~~~~
 body <- dashboardBody(
   
-  
   tabItems(
     
     ## Dashboard page
     tabItem(
       tabName = "dashboard",
+      #h2("hello there"),
+      
+      
+      fluidRow(
+      # box(width = 12, 
+      #     title = "General Summary", 
+      #     status = "warning",
+      #     solidHeader = TRUE,
       # Dynamic valueBoxes
-      valueBoxOutput("TAI"), #Total annual income
-      valueBoxOutput("TAE"), #Total annual expense
-      valueBoxOutput("TAS"), #Total annual savings 
+      infoBoxOutput("TAI"), #Total annual income
+      infoBoxOutput("TAE"), #Total annual expense
+      infoBoxOutput("TAS"), #Total annual savings 
+      ),
+      
+      fluidRow(), # Add extra row
+      
+      fluidRow(
+        column(
+          width = 4,
+          plotOutput("IncomeExpense")
+        ),
+        column(
+          width = 8,
+          plotOutput("MonthlyExpenses")
+        )
+      ),
+  
+      
+      
     ),
     
     ## Data table page
@@ -86,6 +111,7 @@ body <- dashboardBody(
     )
     
   )
+  
   
   
   

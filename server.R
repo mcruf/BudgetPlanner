@@ -60,7 +60,7 @@ server <- function(input, output) {
     
     # Match colnames
     if(length(intersect(colnames(df), COLNAMES)) != length(COLNAMES))
-      stop("O nome de uma ou mais colunas não coincide com as colunas padrão. Certifique-se de que as colunas da sua tabela sigam o modelo padrão do aplicativo")
+      stop("Please verify your column names. They should match to the same column names of the dataset in the example.")
     
     
     # 2.2) Set appropriate data type to columns
@@ -132,6 +132,8 @@ server <- function(input, output) {
   })
   
   
+  
+  
   #############
   ## Outputs ##
   #############
@@ -140,35 +142,196 @@ server <- function(input, output) {
   
   # Dashboard Tab
   #~~~~~~~~~~~~~~~
-  output$TAI <- renderValueBox({
-    
-    valueBox(
+  
+  ## Total annual income ------------------------------------------
+  output$TAI <- renderInfoBox({
+    infoBox(
       value = paste("R$", format(annual_summary()$TAI, big.mark=","), sep= " "), 
-      subtitle = "Total annual income", 
-      icon = icon("list"),
-      color = "navy"
+      title = "Total annual income", 
+      icon = icon("coins"),
+      color = "navy",
+      fill = TRUE
     )
   })
   
   
-  output$TAE <- renderValueBox({
-    valueBox(
+  ## Total annual expenses ------------------------------------------
+  output$TAE <- renderInfoBox({
+    infoBox(
       value = paste("R$", format(annual_summary()$TAE, big.mark=","), sep= " "), 
-      subtitle = "Total annual expsenses", 
-      icon = icon("thumbs-up", lib = "glyphicon"),
-      color = "light-blue"
+      title = "Total annual expsenses", 
+      #icon = icon("thumbs-up", lib = "glyphicon"),
+      icon = icon("wallet"),
+      color = "light-blue",
+      fill = TRUE
     )
     
   })
   
-  output$TAS <- renderValueBox({
-    valueBox(
+  # Total annual savings ------------------------------------------
+  output$TAS <- renderInfoBox({
+    infoBox(
       value = paste("R$", format(annual_summary()$TAS, big.mark=","), sep= " "), 
-      subtitle = "Total annual savings", 
-      icon = icon("list"),
-      color = "blue"
+      title = "Total annual savings", 
+      icon = icon("sack-dollar"),
+      color = "blue",
+      fill = TRUE
     )
   })
+  
+  
+  
+  ## Donut chart: Income vs. Expense (%) --------------------------
+  output$IncomeExpense <- renderPlot({
+    
+    THIS_YEAR <- year(Sys.Date())
+    THIS_MONTH <- month(Sys.Date(), label = T)
+
+    
+    ### Calculate incomve vs. expense in percentage
+    tmp <- df() %>%
+           filter(Mes %in% THIS_MONTH) %>%
+           summarise(expenses = sum(Valor_BRL),
+                     income = unique(Renda),
+                     x = 1,
+                     budget = x - (expenses/income),
+                     expense = x-budget) %>%
+            select(3:5) %>%
+            tidyr::pivot_longer(cols = -x)
+    
+    
+    ### Define text label to appear in the center of the plot
+    text_label <- percent(tmp$value, accuracy = 1)
+    
+    ### Go for the plot
+    ggplot(tmp, aes(x = x, y = value, fill = name)) +
+      
+      # Add a bar, but don't add the legend
+      geom_col(show.legend = T,
+               color = 'white',
+               size=1) +
+      
+      coord_polar(theta = "y",
+                  direction = 1) +
+      
+      xlim(c(-2, 2)) +  # Set the limits, which is important for adding the hole
+      scale_fill_manual(values = c("grey90", "#f2a262"),
+                        labels = c("Remaining budget", "Expenses")) +
+      
+      
+      # Set theme_void() to remove grid lines and everything else from the plot
+      theme_void() +
+      
+      
+      # Add the big number in the center of the hole
+      annotate("text",
+               label = text_label[2],
+               #family = font_family,
+               fontface = "bold",
+               color = "#f2a262",
+               size = 12,
+               x = -2,
+               y = 0) +
+      
+      labs(title = "Current expenses (R$)") +
+      
+      theme(legend.position = "bottom",
+            legend.title = element_blank(),
+            legend.text = element_text(size = 11, face='bold', color = 'gray30'),
+            plot.title = element_text(hjust = 0.5, face = 'bold', color = 'gray15'),
+            plot.margin = unit(c(0, 0, 0, 0), "null"),
+            panel.margin = unit(c(0, 0, 0, 0), "null"),
+            panel.background = element_rect(fill = "transparent",
+                                            colour = NA_character_) # necessary to avoid drawing panel outline
+            )
+    
+    
+      
+  })
+
+  
+  
+  ## Bar chart: Monthly income vs. expense (%) --------------------------
+  output$MonthlyExpenses <- renderPlot({
+    
+    THIS_YEAR <- year(Sys.Date())
+    
+    ## Prepare the data
+    tmp <- df() %>%
+          group_by(Ano, Mes) %>%
+          filter(Ano %in% THIS_YEAR) %>%
+          summarise(expenses = sum(Valor_BRL),
+                      income = unique(Renda)) %>%
+          mutate(diff = income-expenses,
+                   diff_p = 100-100*((income-expenses) / income),
+                   Budget = ifelse(diff >= 0, 'Below', 'Above'))
+          
+    ## Set factor
+    tmp$Budget <- as.factor(tmp$Budget)
+    
+    ## Go for the plot
+    # Go for the plot 
+    ggplot(tmp, aes(x=Mes, y=expenses, col = Budget, group = 1)) +
+      geom_bar(stat = "identity",
+               col = '#ea8c4c',
+               fill = '#f2a262',
+               size = 0.8,
+               alpha = 0.8) +
+      geom_point(size=NA) +
+      # geom_line(aes(x = Mes, y = income), 
+      #           stat="identity", 
+      #           color="#238d7b",
+      #           size=1,
+      #           linetype = "dashed") +
+      geom_area( aes(x=Mes, y=income, col = Budget, group = 1),
+                 size = 0.9, 
+                 alpha = 0.3, 
+                 linetype = "dashed",
+                 color="#238d7b",
+                 fill="#238d7b") +
+      
+      geom_text(aes(label = paste(round(diff_p, 0), "%", sep=' '),  
+                    group = Mes, 
+                    col = Budget),
+                position = position_dodge2(width = 1, preserve = "single"),
+                vjust=-0.5,
+                size = 4,
+                fontface = 'bold',
+                show.legend=F) +
+      
+      
+      scale_y_continuous(sec.axis = sec_axis(~.,name="Income (R$)")) +
+      
+      
+      scale_color_manual(name = "Budget", values = c("darkred", "#274653")) +
+      guides(colour=guide_legend(override.aes=list(size=2))) +
+      
+      # geom_text(aes(label=round(diff_p, 0), y = 1000), 
+      #           position = position_dodge(0.90)) +
+      
+      #geom_hline(yintercept = tmp$income, linetype='dotted') +
+      ylab('Expenses (R$)') +
+      theme_minimal() +
+      theme(legend.position = "bottom",
+            legend.title = element_text(size = 12, face='bold', color = 'gray20'),
+            legend.text = element_text(size = 10, face='bold', color = 'gray30'),
+            axis.text = element_text(size = 12, face = 'bold'),
+            axis.title.x = element_blank(),
+            axis.title.y = element_text(size = 12, face = 'bold'),
+            #panel.border = element_blank(),
+            #panel.grid=element_blank(),
+            #axis.ticks = element_blank(),
+            plot.title=element_text(size=14, face="bold"),
+            axis.text.y.right = element_text(color = "#238d7b"), 
+            axis.title.y.right = element_text(color = "#238d7b")
+      )
+    
+    
+    
+  })
+  
+  
+  
   
   
   
@@ -185,20 +348,3 @@ server <- function(input, output) {
   
 }
 
-# # Define server logic required to draw a histogram
-# function(input, output, session) {
-# 
-#     output$distPlot <- renderPlot({
-# 
-#         # generate bins based on input$bins from ui.R
-#         x    <- faithful[, 2]
-#         bins <- seq(min(x), max(x), length.out = input$bins + 1)
-# 
-#         # draw the histogram with the specified number of bins
-#         hist(x, breaks = bins, col = 'darkgray', border = 'white',
-#              xlab = 'Waiting time to next eruption (in mins)',
-#              main = 'Histogram of waiting times')
-# 
-#     })
-# 
-# }
