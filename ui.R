@@ -86,20 +86,33 @@ body <- dashboardBody(
       infoBoxOutput("TAS"), #Total annual savings 
       ),
       
-      fluidRow(), # Add extra row
+      br(), # Add extra row
       
       fluidRow(
         column(
           width = 4,
-          plotOutput("IncomeExpense")
+         # height = 400,
+          plotOutput("IncomeExpense", height = 200)
         ),
         column(
           width = 8,
-          plotOutput("MonthlyExpenses")
+          #height = 400,
+          plotOutput("MonthlyExpenses", height = 200)
         )
       ),
   
       
+      fluidRow(), # Add extra row
+     
+      
+      fluidRow(
+        column(
+          width = 6,
+          #style='padding-top:15px;',
+          br(),
+          plotOutput("CategoryExpenses")
+        )
+        )
       
     ),
     

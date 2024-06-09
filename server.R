@@ -132,6 +132,26 @@ server <- function(input, output) {
   })
   
   
+  #~~~~~~~~~~~~~~~~~~~
+  # 4) Default inputs
+  #~~~~~~~~~~~~~~~~~~~
+  
+  # 4.1) Default color palette
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  MYCOLORS <- c("#203a44",
+                #"#264653",
+                "#2a9d8f",
+                "#8ab17d",
+                "#e9c46a",
+                "#EFD595",
+                "#efb366",
+                "#f4a261",
+                "#e76f51",
+                "#e97c61",
+                "#bc4749")
+  
+  
+  
   
   
   #############
@@ -190,7 +210,7 @@ server <- function(input, output) {
     
     ### Calculate incomve vs. expense in percentage
     tmp <- df() %>%
-           filter(Mes %in% THIS_MONTH) %>%
+           filter(Mes %in% THIS_MONTH & Ano %in% THIS_YEAR) %>%
            summarise(expenses = sum(Valor_BRL),
                      income = unique(Renda),
                      x = 1,
@@ -269,8 +289,8 @@ server <- function(input, output) {
     ## Set factor
     tmp$Budget <- as.factor(tmp$Budget)
     
+    
     ## Go for the plot
-    # Go for the plot 
     ggplot(tmp, aes(x=Mes, y=expenses, col = Budget, group = 1)) +
       geom_bar(stat = "identity",
                col = '#ea8c4c',
@@ -331,7 +351,49 @@ server <- function(input, output) {
   })
   
   
-  
+  ## Treemap chart: Expenses per category (%) --------------------------
+  output$CategoryExpenses <- renderPlot({
+    
+    # Select current month
+    TODAY <- Sys.Date()
+    THIS_MONTH <- month(TODAY, label = T)
+    THIS_YEAR <- year(TODAY)
+    
+    # Subset & summarize expenses by category
+    tmp <- df() %>% 
+      filter(Mes %in% THIS_MONTH & Ano %in% THIS_YEAR) %>%
+      group_by(Categoria) %>%
+      summarise(Total_cost = sum(Valor_BRL)) %>%
+      mutate(Total_perc = Total_cost / sum(Total_cost) *100)
+    
+    
+    ## Go for the plot
+    ggplot(tmp, aes(area = Total_perc,
+                    fill = Categoria,
+                    
+                    # TODO: Adjust labels such that each information corresponds to one row
+                    label = paste(paste(Categoria, "\n"), paste( paste(round(Total_cost,1), sep = "\n"), paste( "(", round(Total_perc,1), "%", ")", sep = ""))))) +
+      #label= paste(Categoria, paste(round(Total_perc,1), "%"), sep = "\n\n"))) + 
+      geom_treemap(layout="squarified",
+                   colour = "white", size = 4) + 
+      geom_treemap_text(place = "centre",
+                        size = 12,
+                        colour = "white",
+                        reflow = T,
+                        fontface = 'bold') + 
+      #scale_fill_brewer(palette = "BrBG") +
+      # scale_fill_viridis_d(direction = -1) +
+      #scale_fill_manual(values = lacroix_palette("PeachPear",type = "continuous")) +
+      scale_fill_manual(values = COLORS)  +
+      theme(legend.position = "bottom",
+            legend.title = element_text(size = 13, face = 'bold', color = 'gray15'),
+            legend.text = element_text(size = 11,  color = 'gray30'))
+    
+    
+    
+    
+  })
+    
   
   
   
