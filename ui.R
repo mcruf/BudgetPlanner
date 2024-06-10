@@ -14,6 +14,7 @@
 #~~~~~~~~~~~~~~~~
 library(shiny)
 library(shinydashboard)
+library(summaryBox)
 library(DT)
 
 
@@ -65,7 +66,29 @@ sidebar <-  dashboardSidebar(
 
 # 3) Body
 #~~~~~~~~
+
+## Personalize further the dashboard layout
+library(fresh)
+
+my_theme = create_theme(
+  adminlte_color(
+    yellow = "#2a9d8f",
+    navy = "#264653",
+    light_blue = "#8AB17D",
+    blue = "#E9C46A",
+
+  ),
+  adminlte_global(
+    #content_bg = "#D8DEE9",
+    #box_bg = "#D8DEE9", 
+    #info_box_bg = "FFFFF"
+  )
+)
+
+
+
 body <- dashboardBody(
+ use_theme(my_theme),
   
   tabItems(
     
@@ -76,6 +99,12 @@ body <- dashboardBody(
       
       
       fluidRow(
+        box( title = tags$p("Annual Overview",style = 'font-size:20px;'), 
+             status = "warning", 
+             #background = "yellow",
+             solidHeader = F,
+             width = 12,
+            # hr(),
       # box(width = 12, 
       #     title = "General Summary", 
       #     status = "warning",
@@ -83,21 +112,31 @@ body <- dashboardBody(
       # Dynamic valueBoxes
       infoBoxOutput("TAI"), #Total annual income
       infoBoxOutput("TAE"), #Total annual expense
-      infoBoxOutput("TAS"), #Total annual savings 
+      infoBoxOutput("TAS"), #Total annual savings
+)
       ),
       
-      br(), # Add extra row
+     # br(), # Add extra row
       
       fluidRow(
         column(
           width = 4,
-         # height = 400,
+          box( title = tags$p("Current expenses",style = 'font-size:20px;'), 
+               status = "warning",
+               solidHeader = F,
+               width = NULL,
+               #hr(),
           plotOutput("IncomeExpense", height = 200)
-        ),
+        )),
         column(
           width = 8,
-          #height = 400,
+          box( title = tags$p("Monthly expenses",style = 'font-size:20px;'), 
+               status = "warning", 
+               solidHeader = F,
+               width = NULL,
+               #hr(),
           plotOutput("MonthlyExpenses", height = 200)
+          )
         )
       ),
   
@@ -109,8 +148,26 @@ body <- dashboardBody(
         column(
           width = 6,
           #style='padding-top:15px;',
-          br(),
+          #br(),
+          box( title = tags$p("Expense by Category", style = 'font-size:20px;'), 
+               status = "warning", 
+               solidHeader = F,
+               width = NULL,
+               #hr(),
           plotOutput("CategoryExpenses")
+          )
+        ),
+        column(
+          width = 6,
+          #style='padding-top:15px;',
+          #br(),
+          box( title = tags$p("Top 10 expenses",style = 'font-size:20px;'), 
+               status = "warning", 
+               solidHeader = F,
+               width = NULL,
+               #hr(),
+          plotOutput("TopExpenses")
+        )
         )
         )
       
@@ -140,6 +197,13 @@ body <- dashboardBody(
 ui <- dashboardPage(header,
                     sidebar,
                     body,
-                    skin ='yellow')
+                    skin ='yellow',
+                    
+                    ## customize horizontal ruler
+                    tags$head(
+                      tags$style(HTML("hr {border-top: solid #f39c12;
+                                           border-width: 3px;
+                                           margin-top: -0.5em;}"))
+                    ))
 
 

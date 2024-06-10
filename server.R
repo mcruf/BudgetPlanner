@@ -50,12 +50,13 @@ server <- function(input, output) {
     #~~~~~~~~~~~~~~~~~~~~~
     
     # Default colnames
-    COLNAMES <- c("Valor_BRL",
-                  "Categoria",
-                  "Data",
-                  "Ano",
-                  "Mes",
-                  "Forma_de_pagamento")
+    COLNAMES <- c("Cost",
+                  "Category",
+                  "Date",
+                  "Year",
+                  "Month",
+                  "Payment",
+                  "Obs")
     
     
     # Match colnames
@@ -67,40 +68,40 @@ server <- function(input, output) {
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     # Factor
-    df[, c("Categoria",
-           "Ano", 
-           "Mes", 
-           "Forma_de_pagamento")] <- lapply(df[, c("Categoria",
-                                                   "Ano", 
-                                                   "Mes", 
-                                                   "Forma_de_pagamento")], factor)
+    df[, c("Category",
+           "Year", 
+           "Month", 
+           "Payment")] <- lapply(df[, c("Category",
+                                        "Year", 
+                                        "Month", 
+                                        "Payment")], factor)
     
     
     # Date
-    df$Data <- as.Date(df$Data, "%d.%m.%Y")
+    df$Date <- as.Date(df$Date, "%d.%m.%Y")
     
     
     # 2.3) Reorder data by Date & refactor month levels
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     # Reorder by date
-    df <- df[order(df$Data),]
+    df <- df[order(df$Date),]
     
     
     # Rename factor levels of Month
-    df$Mes <- dplyr::recode_factor(df$Mes,
-                                   Janeiro = "Jan",
-                                   Fevereiro = "Feb",
-                                   Marco = "Mar",
-                                   Abril = "Apr",
-                                   Maio = "May",
-                                   Junho = "Jun",
-                                   Julho = "Jul",
-                                   Agosto = "Aug",
-                                   Setembro = "Sep",
-                                   Outubro  = "Oct",
-                                   Novembro = "Nov",
-                                   Dezembro = "Dec")
+    df$Month <- dplyr::recode_factor(df$Month,
+                                     January = "Jan",
+                                     February = "Feb",
+                                     March = "Mar",
+                                     April = "Apr",
+                                     May = "May",
+                                     June = "Jun",
+                                     July = "Jul",
+                                     August = "Aug",
+                                     September = "Sep",
+                                     October  = "Oct",
+                                     November = "Nov",
+                                     December = "Dec")
     
     return(df)
     
@@ -119,15 +120,15 @@ server <- function(input, output) {
     
     
     df() %>%
-      group_by(Ano, Mes) %>%
+      group_by(Year, Month) %>%
       #filter(Mes %in% MONTH) %>%
-      summarise(TAI = unique(Renda),
-                TAE = sum(Valor_BRL),
+      summarise(TAI = unique(Income),
+                TAE = sum(Cost),
                 TAS = TAI - TAE) %>%
       summarise(TAI = round(sum(TAI),2),
                 TAE = round(sum(TAE),2),
                 TAS = round(sum(TAS)),2) %>%
-      filter(Ano %in% THIS_YEAR) 
+      filter(Year %in% THIS_YEAR) 
     
   })
   
@@ -153,19 +154,24 @@ server <- function(input, output) {
   
   
   ## Standardize colors based on expense category
-  THIS_YEAR <- year(Sys.Date())
-  THIS_MONTH <- month(Sys.Date(), label = T)
   
+  dfcolors <- reactive({
+    
+              THIS_YEAR <- year(Sys.Date())
+              THIS_MONTH <- month(Sys.Date(), label = T)
+              
+              datcol <- df() %>% 
+                          filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+                          group_by(Category) %>%
+                          summarise(Total_cost = sum(Cost)) %>%
+                          mutate(Total_perc = Total_cost / sum(Total_cost) * 100) %>%
+                          select("Category")
+              
+              return(datcol)
+              
+              
+              })
   
-  dfcolors <- df() %>% 
-              filter(Mes %in% THIS_MONTH & Ano %in% THIS_YEAR) %>%
-              group_by(Categoria) %>%
-              summarise(Total_cost = sum(Valor_BRL)) %>%
-              mutate(Total_perc = Total_cost / sum(Total_cost) * 100) %>%
-              select("Categoria") 
-  
-  dfcolors <- data.frame(Categoria = dfcolors, 
-                         Color = MYCOLORS[1:nrow(dfcolors)])
   
   
   #scales::show_col(dfcolors$Color) # Visualize the colors
@@ -187,20 +193,18 @@ server <- function(input, output) {
       title = "Total annual income", 
       icon = icon("coins"),
       color = "navy",
-      fill = TRUE
+      fill = T
     )
   })
-  
   
   ## Total annual expenses ------------------------------------------
   output$TAE <- renderInfoBox({
     infoBox(
       value = paste("R$", format(annual_summary()$TAE, big.mark=","), sep= " "), 
       title = "Total annual expsenses", 
-      #icon = icon("thumbs-up", lib = "glyphicon"),
       icon = icon("wallet"),
       color = "light-blue",
-      fill = TRUE
+      fill = T
     )
     
   })
@@ -208,11 +212,11 @@ server <- function(input, output) {
   # Total annual savings ------------------------------------------
   output$TAS <- renderInfoBox({
     infoBox(
-      value = paste("R$", format(annual_summary()$TAS, big.mark=","), sep= " "), 
+      value = paste("R$", format(annual_summary()$TAS, big.mark=","), sep= " "),
       title = "Total annual savings", 
       icon = icon("sack-dollar"),
       color = "blue",
-      fill = TRUE
+      fill = T
     )
   })
   
@@ -227,9 +231,9 @@ server <- function(input, output) {
     
     ### Calculate incomve vs. expense in percentage
     tmp <- df() %>%
-           filter(Mes %in% THIS_MONTH & Ano %in% THIS_YEAR) %>%
-           summarise(expenses = sum(Valor_BRL),
-                     income = unique(Renda),
+           filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+           summarise(expenses = sum(Cost),
+                     income = unique(Income),
                      x = 1,
                      budget = x - (expenses/income),
                      expense = x-budget) %>%
@@ -252,8 +256,8 @@ server <- function(input, output) {
                   direction = 1) +
       
       xlim(c(-2, 2)) +  # Set the limits, which is important for adding the hole
-      scale_fill_manual(values = c("grey90", "#f2a262"),
-                        labels = c("Remaining budget", "Expenses")) +
+      scale_fill_manual(values = c("grey90", "#e76f51"),
+                        labels = c("Remaining \n budget", "Expenses\n")) +
       
       
       # Set theme_void() to remove grid lines and everything else from the plot
@@ -265,19 +269,20 @@ server <- function(input, output) {
                label = text_label[2],
                #family = font_family,
                fontface = "bold",
-               color = "#f2a262",
+               color = "#e76f51",
                size = 12,
                x = -2,
                y = 0) +
       
-      labs(title = "Current expenses (R$)") +
+      #labs(title = "Current expenses (R$)") +
       
-      theme(legend.position = "bottom",
+      theme(legend.position = "left",
             legend.title = element_blank(),
             legend.text = element_text(size = 11, face='bold', color = 'gray30'),
             plot.title = element_text(hjust = 0.5, face = 'bold', color = 'gray15'),
-            plot.margin = unit(c(0, 0, 0, 0), "null"),
-            panel.margin = unit(c(0, 0, 0, 0), "null"),
+            plot.margin = margin(0,0,0,0, "cm"),
+            #plot.margin = unit(c(0, 0, 0, 0), "null"),
+            #panel.margin = unit(c(0, 0, 0, 0), "null"),
             panel.background = element_rect(fill = "transparent",
                                             colour = NA_character_) # necessary to avoid drawing panel outline
             )
@@ -295,10 +300,10 @@ server <- function(input, output) {
     
     ## Prepare the data
     tmp <- df() %>%
-          group_by(Ano, Mes) %>%
-          filter(Ano %in% THIS_YEAR) %>%
-          summarise(expenses = sum(Valor_BRL),
-                      income = unique(Renda)) %>%
+          group_by(Year, Month) %>%
+          filter(Year %in% THIS_YEAR) %>%
+          summarise(expenses = sum(Cost),
+                      income = unique(Income)) %>%
           mutate(diff = income-expenses,
                    diff_p = 100-100*((income-expenses) / income),
                    Budget = ifelse(diff >= 0, 'Below', 'Above'))
@@ -308,10 +313,10 @@ server <- function(input, output) {
     
     
     ## Go for the plot
-    ggplot(tmp, aes(x=Mes, y=expenses, col = Budget, group = 1)) +
+    ggplot(tmp, aes(x=Month, y=expenses, col = Budget, group = 1)) +
       geom_bar(stat = "identity",
-               col = '#ea8c4c',
-               fill = '#f2a262',
+               col = '#edcd7e',
+               fill = '#efd595',
                size = 0.8,
                alpha = 0.8) +
       geom_point(size=NA) +
@@ -320,7 +325,7 @@ server <- function(input, output) {
       #           color="#238d7b",
       #           size=1,
       #           linetype = "dashed") +
-      geom_area( aes(x=Mes, y=income, col = Budget, group = 1),
+      geom_area( aes(x=Month, y=income, col = Budget, group = 1),
                  size = 0.9, 
                  alpha = 0.3, 
                  linetype = "dashed",
@@ -328,7 +333,7 @@ server <- function(input, output) {
                  fill="#238d7b") +
       
       geom_text(aes(label = paste(round(diff_p, 0), "%", sep=' '),  
-                    group = Mes, 
+                    group = Month, 
                     col = Budget),
                 position = position_dodge2(width = 1, preserve = "single"),
                 vjust=-0.5,
@@ -356,15 +361,14 @@ server <- function(input, output) {
             axis.title.x = element_blank(),
             axis.title.y = element_text(size = 12, face = 'bold'),
             #panel.border = element_blank(),
-            #panel.grid=element_blank(),
+            panel.grid=element_blank(),
             #axis.ticks = element_blank(),
             plot.title=element_text(size=14, face="bold"),
             axis.text.y.right = element_text(color = "#238d7b"), 
             axis.title.y.right = element_text(color = "#238d7b")
       )
     
-    
-    
+  
   })
   
   
@@ -376,92 +380,99 @@ server <- function(input, output) {
     THIS_MONTH <- month(TODAY, label = T)
     THIS_YEAR <- year(TODAY)
     
+  
+    
     # Subset & summarize expenses by category
     tmp <- df() %>% 
-      filter(Mes %in% THIS_MONTH & Ano %in% THIS_YEAR) %>%
-      group_by(Categoria) %>%
-      summarise(Total_cost = sum(Valor_BRL)) %>%
+      filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+      group_by(Category) %>%
+      summarise(Total_cost = sum(Cost)) %>%
       mutate(Total_perc = Total_cost / sum(Total_cost) *100)
     
     
     ## Go for the plot
     ggplot(tmp, aes(area = Total_perc,
-                    fill = Categoria,
-                    
-                    # TODO: Adjust labels such that each information corresponds to one row
-                    label = paste(paste(Categoria, "\n"), paste( paste(round(Total_cost,1), sep = "\n"), paste( "(", round(Total_perc,1), "%", ")", sep = ""))))) +
+                    fill = Category, 
+                    label = paste(paste(Category, "\n"), paste( paste(round(Total_cost,1), sep = "\n"), paste( "(", round(Total_perc,1), "%", ")", sep = ""))))) +
       #label= paste(Categoria, paste(round(Total_perc,1), "%"), sep = "\n\n"))) + 
+      #labs(title="Customized Tree Plot using ggplot and treemapify in R") +
       geom_treemap(layout="squarified",
                    colour = "white", size = 4) + 
       geom_treemap_text(place = "centre",
-                        size = 12,
+                        size = 14,
                         colour = "white",
                         reflow = T,
                         fontface = 'bold') + 
       #scale_fill_brewer(palette = "BrBG") +
       # scale_fill_viridis_d(direction = -1) +
       #scale_fill_manual(values = lacroix_palette("PeachPear",type = "continuous")) +
-      scale_fill_manual(values = COLORS)  +
-      theme(legend.position = "bottom",
+      scale_fill_manual(values = MYCOLORS)  +
+      theme(legend.position = "none",
             legend.title = element_text(size = 13, face = 'bold', color = 'gray15'),
             legend.text = element_text(size = 11,  color = 'gray30'))
     
-    
+  })
     
     ## Lolipop chart: Top expenses ---------------------------------------------------
     output$TopExpenses <- renderPlot({
-      
+
       ## Define time window
       TODAY <- Sys.Date()
       THIS_MONTH <- month(TODAY, label = T)
       THIS_YEAR <- year(TODAY)
+
       
-      
+      ## Set default colors
+      dfcolors <- dfcolors()
+      dfcolors <- data.frame(Category = dfcolors,
+                             Color = MYCOLORS[1:nrow(dfcolors)])
+
       ## Filter & prepare data
-      tmp <- df() %>% 
-             filter(Mes %in% THIS_MONTH & Ano %in% THIS_YEAR) %>%
-             arrange(desc(Valor_BRL)) %>% 
+      tmp <- df() %>%
+             filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+             arrange(desc(Cost)) %>%
              slice(1:10) %>%
              mutate(ID = as.factor(1:nrow(.))) %>%
-             merge(., dfcolors, by = "Categoria")
-      
-      
-      ## Go for the plot
-      ggplot(tmp, aes(x = ID, y = Valor_BRL)) +
-        geom_segment(aes(x = ID, xend = ID, y = 0, yend = Valor_BRL), 
-                     color = tmp$Color, 
+             merge(., dfcolors, by = "Category")
+
+
+    #   ## Go for the plot
+      ggplot(tmp, aes(x = ID, y = Cost, fill = Category)) +
+        geom_segment(aes(x = ID, xend = ID, y = 0, yend = Cost, color = Category),
                      lwd = 4) +
         geom_point(size = 8, pch = 21, bg = tmp$Color, col = "white", stroke = 3) +
         coord_flip() +
-        #scale_fill_discrete(limits=rev)
-        #expand_limits(x = 0, y = 0) +
-        scale_y_continuous(expand = c(0, 0), limits=c(0, (100 + max(tmp$Valor_BRL)))) +
-        scale_x_discrete(labels = c("1" = paste(tmp[1,"Categoria"]),
-                                    "2" = paste(tmp[2,"Categoria"]),
-                                    "3" = paste(tmp[3,"Categoria"]),
-                                    "4" = paste(tmp[4,"Categoria"]),
-                                    "5" = paste(tmp[5,"Categoria"]),
-                                    "6" = paste(tmp[6,"Categoria"]),
-                                    "7" = paste(tmp[7,"Categoria"]),
-                                    "8" = paste(tmp[8,"Categoria"]),
-                                    "9" = paste(tmp[9,"Categoria"]),
-                                    "10" = paste(tmp[10,"Categoria"])
-        ),
-        limits = rev) +
+        scale_color_manual(
+          "Category", 
+          values = c("Alimentação" = "#203a44", 
+                     "Casa" = "#2a9d8f",
+                     "Comunicação" = "#8ab17d",
+                     "Lazer" = "#e9c46a",
+                     "Outros" = "#EFD595",
+                     "Pessoal" = "#efb366",
+                     "Saude" = "#f4a261",
+                     "Transporte" = "#e76f51"), 
+        ) +
+        scale_y_continuous(expand = c(0, 0), limits=c(0, (100 + max(tmp$Cost)))) +
+        scale_x_discrete(limits = rev) +
         labs(y = "Expense (R$)") +
         theme_pubr() +
-        theme(axis.text.y = element_blank(),
-              axis.title.y = element_blank(),
-              axis.line.y = element_blank(),
-              axis.ticks.y = element_blank(),
-              axis.text.x = element_text(size = 14),
-              axis.title.x = element_text(size = 15, face = 'bold'))
-      
+        theme(#legend.position = 'bottom',
+          legend.position=c(0.80, 0.25),
+          legend.title = element_text(size = 16, face = "bold"),
+          legend.text = element_text(size = 15),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          axis.line.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.text.x = element_text(size = 14),
+          axis.title.x = element_text(size = 15, face = 'bold'))
+
     })
+
     
     
-    
-  })
+  
     
   
   
