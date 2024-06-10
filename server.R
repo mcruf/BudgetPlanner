@@ -132,6 +132,7 @@ server <- function(input, output) {
   })
   
   
+  
   #~~~~~~~~~~~~~~~~~~~
   # 4) Default inputs
   #~~~~~~~~~~~~~~~~~~~
@@ -151,7 +152,23 @@ server <- function(input, output) {
                 "#bc4749")
   
   
+  ## Standardize colors based on expense category
+  THIS_YEAR <- year(Sys.Date())
+  THIS_MONTH <- month(Sys.Date(), label = T)
   
+  
+  dfcolors <- df() %>% 
+              filter(Mes %in% THIS_MONTH & Ano %in% THIS_YEAR) %>%
+              group_by(Categoria) %>%
+              summarise(Total_cost = sum(Valor_BRL)) %>%
+              mutate(Total_perc = Total_cost / sum(Total_cost) * 100) %>%
+              select("Categoria") 
+  
+  dfcolors <- data.frame(Categoria = dfcolors, 
+                         Color = MYCOLORS[1:nrow(dfcolors)])
+  
+  
+  #scales::show_col(dfcolors$Color) # Visualize the colors
   
   
   #############
@@ -389,6 +406,58 @@ server <- function(input, output) {
             legend.title = element_text(size = 13, face = 'bold', color = 'gray15'),
             legend.text = element_text(size = 11,  color = 'gray30'))
     
+    
+    
+    ## Lolipop chart: Top expenses ---------------------------------------------------
+    output$TopExpenses <- renderPlot({
+      
+      ## Define time window
+      TODAY <- Sys.Date()
+      THIS_MONTH <- month(TODAY, label = T)
+      THIS_YEAR <- year(TODAY)
+      
+      
+      ## Filter & prepare data
+      tmp <- df() %>% 
+             filter(Mes %in% THIS_MONTH & Ano %in% THIS_YEAR) %>%
+             arrange(desc(Valor_BRL)) %>% 
+             slice(1:10) %>%
+             mutate(ID = as.factor(1:nrow(.))) %>%
+             merge(., dfcolors, by = "Categoria")
+      
+      
+      ## Go for the plot
+      ggplot(tmp, aes(x = ID, y = Valor_BRL)) +
+        geom_segment(aes(x = ID, xend = ID, y = 0, yend = Valor_BRL), 
+                     color = tmp$Color, 
+                     lwd = 4) +
+        geom_point(size = 8, pch = 21, bg = tmp$Color, col = "white", stroke = 3) +
+        coord_flip() +
+        #scale_fill_discrete(limits=rev)
+        #expand_limits(x = 0, y = 0) +
+        scale_y_continuous(expand = c(0, 0), limits=c(0, (100 + max(tmp$Valor_BRL)))) +
+        scale_x_discrete(labels = c("1" = paste(tmp[1,"Categoria"]),
+                                    "2" = paste(tmp[2,"Categoria"]),
+                                    "3" = paste(tmp[3,"Categoria"]),
+                                    "4" = paste(tmp[4,"Categoria"]),
+                                    "5" = paste(tmp[5,"Categoria"]),
+                                    "6" = paste(tmp[6,"Categoria"]),
+                                    "7" = paste(tmp[7,"Categoria"]),
+                                    "8" = paste(tmp[8,"Categoria"]),
+                                    "9" = paste(tmp[9,"Categoria"]),
+                                    "10" = paste(tmp[10,"Categoria"])
+        ),
+        limits = rev) +
+        labs(y = "Expense (R$)") +
+        theme_pubr() +
+        theme(axis.text.y = element_blank(),
+              axis.title.y = element_blank(),
+              axis.line.y = element_blank(),
+              axis.ticks.y = element_blank(),
+              axis.text.x = element_text(size = 14),
+              axis.title.x = element_text(size = 15, face = 'bold'))
+      
+    })
     
     
     
