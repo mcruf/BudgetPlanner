@@ -126,7 +126,7 @@ body <- dashboardBody(
           width = 4,
           box( title = tags$p("Current expenses",style = 'font-size:20px;'), 
                status = "warning",
-               #collapsible = T,
+               collapsible = T,
                solidHeader = F,
                width = NULL,
                #hr(),
@@ -136,7 +136,7 @@ body <- dashboardBody(
           width = 8,
           box( title = tags$p("Monthly income & expenses",style = 'font-size:20px;'), 
                status = "warning", 
-               #collapsible = T,
+               collapsible = T,
                solidHeader = F,
                width = NULL,
                #hr(),
@@ -157,6 +157,7 @@ body <- dashboardBody(
           box( title = tags$p("Expense by Category", style = 'font-size:20px;'), 
                status = "warning", 
                solidHeader = F,
+               collapsible = T,
                width = NULL,
                #hr(),
           plotOutput("CategoryExpenses")
@@ -169,6 +170,7 @@ body <- dashboardBody(
           box( title = tags$p("Top 10 expenses",style = 'font-size:20px;'), 
                status = "warning", 
                solidHeader = F,
+               collapsible = T,
                width = NULL,
                #hr(),
           plotlyOutput("TopExpenses")
