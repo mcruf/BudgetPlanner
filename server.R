@@ -294,7 +294,7 @@ server <- function(input, output) {
   
   
   ## Bar chart: Monthly income vs. expense (%) --------------------------
-  output$MonthlyExpenses <- renderPlot({
+  output$MonthlyExpenses <- renderPlotly({
     
     THIS_YEAR <- year(Sys.Date())
     
@@ -313,61 +313,130 @@ server <- function(input, output) {
     
     
     ## Go for the plot
-    ggplot(tmp, aes(x=Month, y=expenses, col = Budget, group = 1)) +
-      geom_bar(stat = "identity",
-               col = '#edcd7e',
-               fill = '#efd595',
-               size = 0.8,
-               alpha = 0.8) +
-      geom_point(size=NA) +
-      # geom_line(aes(x = Mes, y = income), 
-      #           stat="identity", 
-      #           color="#238d7b",
-      #           size=1,
-      #           linetype = "dashed") +
-      geom_area( aes(x=Month, y=income, col = Budget, group = 1),
-                 size = 0.9, 
-                 alpha = 0.3, 
-                 linetype = "dashed",
-                 color="#238d7b",
-                 fill="#238d7b") +
-      
-      geom_text(aes(label = paste(round(diff_p, 0), "%", sep=' '),  
-                    group = Month, 
-                    col = Budget),
-                position = position_dodge2(width = 1, preserve = "single"),
-                vjust=-0.5,
-                size = 4,
-                fontface = 'bold',
-                show.legend=F) +
-      
-      
-      scale_y_continuous(sec.axis = sec_axis(~.,name="Income (R$)")) +
-      
-      
-      scale_color_manual(name = "Budget", values = c("darkred", "#274653")) +
-      guides(colour=guide_legend(override.aes=list(size=2))) +
-      
-      # geom_text(aes(label=round(diff_p, 0), y = 1000), 
-      #           position = position_dodge(0.90)) +
-      
-      #geom_hline(yintercept = tmp$income, linetype='dotted') +
-      ylab('Expenses (R$)') +
-      theme_minimal() +
-      theme(legend.position = "bottom",
-            legend.title = element_text(size = 12, face='bold', color = 'gray20'),
-            legend.text = element_text(size = 10, face='bold', color = 'gray30'),
-            axis.text = element_text(size = 12, face = 'bold'),
-            axis.title.x = element_blank(),
-            axis.title.y = element_text(size = 12, face = 'bold'),
-            #panel.border = element_blank(),
-            panel.grid=element_blank(),
-            #axis.ticks = element_blank(),
-            plot.title=element_text(size=14, face="bold"),
-            axis.text.y.right = element_text(color = "#238d7b"), 
-            axis.title.y.right = element_text(color = "#238d7b")
-      )
     
+    ### Prepare data for the plot
+    tmp$expenses <- (tmp$expenses*-1) #Convert expenses to negative values
+    tmp2 <- tidyr::gather(tmp, Type, Value, expenses:income, factor_key=TRUE) #Convert from wide to long
+    
+    
+    ### Pretty breaks
+    upper <- round(min(tmp2$Value), digits = -4)
+    lower <- round(max(tmp2$Value), digits = -4)
+    
+    
+    ggplotly(tooltip = "text", #Define text when hovering over plot
+             
+        ggplot(tmp2, aes(x=Month, y=Value)) + 
+          geom_bar(aes(fill=str_to_title(Type), col = str_to_title(Type), text = ifelse(tmp2$Type == "income", 
+                                                            paste("Income: R$", round(Value,2)), 
+                                                            paste("Expense: R$", round(Value,2)))),
+                   stat="identity", 
+                   position="identity", alpha = 0.7,
+                   size = 0.7) +
+          geom_hline(yintercept=0, color = "gray40", size=1) +
+          geom_line(aes(y = diff, group =1), col = "#e76f51", size = 1.5) +
+          geom_point(aes(y = diff, group =1, text = paste("Savings: R$", round(diff, 2))), 
+                     col = "#e76f51", size =2.5) +
+          scale_fill_manual(values = c("#efd595", "#238d7b")) +
+          scale_color_manual(values = c("#efd595", "#238d7b")) +
+          theme_minimal() +
+          #ylab('Income/Expense (R$)') +
+          ylab('') +
+          guides(colour=guide_legend(title=""),
+                 fill = guide_legend(title="")) +     
+          scale_y_continuous(breaks = seq(upper, lower, 5000)) +
+    
+          theme(legend.position = "top",
+                title.hjust =0.5,
+                #legend.title = element_text(size = 13, face='bold', color = 'gray20'),
+                legend.text = element_text(size = 11, face='bold', color = 'gray30'),
+
+                axis.text = element_text(size = 12, face = 'bold', color = "gray50"),
+                axis.title.x = element_blank(),
+                axis.title.y = element_text(size = 15, 
+                                            face = 'bold', 
+                                            color = "gray30"),
+                
+                axis.ticks = element_line(colour = NULL), 
+                axis.ticks.y = element_blank(),
+                axis.ticks.x = element_line(colour = "gray30"), 
+                axis.line = element_line(colour = "gray30"), 
+                axis.line.y = element_blank(),
+                #axis.text.y.right = element_text(color = "#238d7b"), 
+                #axis.title.y.right = element_text(color = "#238d7b"),
+                
+                #panel.border = element_blank(),
+                panel.grid=element_blank(),
+                
+                plot.margin = unit(c(t=0,b=0,r=0,l=0), "cm")
+          )
+    ) %>%
+      layout(legend=list(#x=0, 
+                         #xanchor='left',
+                         hoverinfo = 'y',
+                         x = 1, 
+                         y = 0.5,
+                         #yanchor='top',
+                         #xanchor='center',
+                         orientation='v'))  
+    
+    ##### Older alternative
+    # ggplot(tmp, aes(x=Month, y=expenses, col = Budget, group = 1)) +
+    #   geom_bar(stat = "identity",
+    #            col = '#edcd7e',
+    #            fill = '#efd595',
+    #            size = 0.8,
+    #            alpha = 0.8) +
+    #   geom_point(size=NA) +
+    #   # geom_line(aes(x = Mes, y = income), 
+    #   #           stat="identity", 
+    #   #           color="#238d7b",
+    #   #           size=1,
+    #   #           linetype = "dashed") +
+    #   geom_area( aes(x=Month, y=income, col = Budget, group = 1),
+    #              size = 0.9, 
+    #              alpha = 0.3, 
+    #              linetype = "dashed",
+    #              color="#238d7b",
+    #              fill="#238d7b") +
+    #   
+    #   geom_text(aes(label = paste(round(diff_p, 0), "%", sep=' '),  
+    #                 group = Month, 
+    #                 col = Budget),
+    #             position = position_dodge2(width = 1, preserve = "single"),
+    #             vjust=-0.5,
+    #             size = 4,
+    #             fontface = 'bold',
+    #             show.legend=F) +
+    #   
+    #   
+    #   scale_y_continuous(sec.axis = sec_axis(~.,name="Income (R$)")) +
+    #   
+    #   
+    #   scale_color_manual(name = "Budget", values = c("darkred", "#274653")) +
+    #   guides(colour=guide_legend(override.aes=list(size=2))) +
+    #   
+    #   # geom_text(aes(label=round(diff_p, 0), y = 1000), 
+    #   #           position = position_dodge(0.90)) +
+    #   
+    #   #geom_hline(yintercept = tmp$income, linetype='dotted') +
+    #   ylab('Expenses (R$)') +
+    #   theme_minimal() +
+    #   theme(legend.position = "bottom",
+    #         legend.title = element_text(size = 15, face='bold', color = 'gray20'),
+    #         legend.text = element_text(size = 14, face='bold', color = 'gray30'),
+    #         axis.text = element_text(size = 14, face = 'bold'),
+    #         axis.title.x = element_blank(),
+    #         axis.title.y = element_text(size = 16, face = 'bold'),
+    #         #panel.border = element_blank(),
+    #         panel.grid=element_blank(),
+    #         #axis.ticks = element_blank(),
+    #         plot.title=element_text(size=14, face="bold"),
+    #         axis.text.y.right = element_text(color = "#238d7b"), 
+    #         axis.title.y.right = element_text(color = "#238d7b"),
+    #         plot.margin = unit(c(t=0,b=0,r=0,l=0), "cm")
+    #   )
+    # 
   
   })
   
@@ -393,7 +462,7 @@ server <- function(input, output) {
     ## Go for the plot
     ggplot(tmp, aes(area = Total_perc,
                     fill = Category, 
-                    label = paste(paste(Category, "\n"), paste( paste(round(Total_cost,1), sep = "\n"), paste( "(", round(Total_perc,1), "%", ")", sep = ""))))) +
+                    label = paste(paste(Category, "\n"), paste( paste("R$",round(Total_cost,1)), paste( "(", round(Total_perc,1), "%", ")", sep = ""))))) +
       #label= paste(Categoria, paste(round(Total_perc,1), "%"), sep = "\n\n"))) + 
       #labs(title="Customized Tree Plot using ggplot and treemapify in R") +
       geom_treemap(layout="squarified",
@@ -414,7 +483,7 @@ server <- function(input, output) {
   })
     
     ## Lolipop chart: Top expenses ---------------------------------------------------
-    output$TopExpenses <- renderPlot({
+    output$TopExpenses <- renderPlotly({
 
       ## Define time window
       TODAY <- Sys.Date()
@@ -437,37 +506,69 @@ server <- function(input, output) {
 
 
     #   ## Go for the plot
-      ggplot(tmp, aes(x = ID, y = Cost, fill = Category)) +
-        geom_segment(aes(x = ID, xend = ID, y = 0, yend = Cost, color = Category),
-                     lwd = 4) +
-        geom_point(size = 8, pch = 21, bg = tmp$Color, col = "white", stroke = 3) +
-        coord_flip() +
-        scale_color_manual(
-          "Category", 
-          values = c("Alimentação" = "#203a44", 
-                     "Casa" = "#2a9d8f",
-                     "Comunicação" = "#8ab17d",
-                     "Lazer" = "#e9c46a",
-                     "Outros" = "#EFD595",
-                     "Pessoal" = "#efb366",
-                     "Saude" = "#f4a261",
-                     "Transporte" = "#e76f51"), 
-        ) +
-        scale_y_continuous(expand = c(0, 0), limits=c(0, (100 + max(tmp$Cost)))) +
-        scale_x_discrete(limits = rev) +
-        labs(y = "Expense (R$)") +
-        theme_pubr() +
-        theme(#legend.position = 'bottom',
-          legend.position=c(0.80, 0.25),
-          legend.title = element_text(size = 16, face = "bold"),
-          legend.text = element_text(size = 15),
-          axis.text.y = element_blank(),
-          axis.title.y = element_blank(),
-          axis.line.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          axis.text.x = element_text(size = 14),
-          axis.title.x = element_text(size = 15, face = 'bold'))
+      
+      ggplotly(tooltip = "text",
+               ggplot(tmp, aes(x = ID, y = Cost, fill = Category, label = Cost)) +
+                 geom_segment(aes(x = ID, xend = ID, y = 0, yend = Cost, color = Category),
+                              lwd = 4) +
+                 geom_point(aes(text = paste("Item: ", Obs)), size = 8, pch = 21, bg = tmp$Color, col = "white", stroke = 3) +
+                 coord_flip() +
+                 scale_color_manual(
+                   "Category", 
+                   values = c("Alimentação" = "#203a44", 
+                              "Casa" = "#2a9d8f",
+                              "Comunicação" = "#8ab17d",
+                              "Lazer" = "#e9c46a",
+                              "Outros" = "#EFD595",
+                              "Pessoal" = "#efb366",
+                              "Saude" = "#f4a261",
+                              "Transporte" = "#e76f51"), 
+                 ) +
+                 guides(color = "none") +
+                 scale_y_continuous(expand = c(0, 0), limits=c(0, (100 + max(tmp$Cost)))) +
+                 scale_x_discrete(limits = rev) +
+                 labs(y = "Expense (R$)") +
+                 geom_text(aes(label = paste("R$",Cost)), 
+                           position = position_dodge(width = 0), 
+                           #hjust = 25, 
+                           fontface = "bold") +
+                 theme_pubr() +
+                 theme(
+                   legend.position=c(0.80, 0.25),
+                   #legend.title = element_text(size = 16, face = "bold"),
+                   #legend.text = element_text(size = 15),
+                   
+                   axis.text = element_text(size = 12, face = 'bold', color = "gray50"),
+                   axis.text.y = element_blank(),
+                   axis.title.y = element_blank(),
+                   axis.title.x = element_text(size = 13, 
+                                               face = 'bold', 
+                                               color = "gray35"),
 
+                   axis.ticks = element_line(colour = NULL), 
+                   axis.ticks.y = element_blank(),
+                   axis.ticks.x = element_line(colour = "gray30"), 
+                   axis.line = element_line(colour = "gray30"), 
+                   axis.line.y = element_blank(),
+                   
+                   
+                   #axis.text.x = element_text(size = 14),
+                   
+
+                   panel.grid=element_blank())
+    
+     ) %>%
+       layout(legend=list(
+         tracegroupgap = 2,
+         x = 0.7,
+         y = 0.1,
+         orientation='v',
+         #textfont = list(size = 2, color = 'gray30'))
+         font = list(size = 13, color = "gray30"))
+         ) %>%
+        style(texttemplate = '%{x: 28} R$', 
+              textposition = "outside") # Force text's position for ggplotly
+      
     })
 
     

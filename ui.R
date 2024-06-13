@@ -16,6 +16,9 @@ library(shiny)
 library(shinydashboard)
 library(summaryBox)
 library(DT)
+library(stringr)
+library(plotly)
+
 
 
 
@@ -79,7 +82,7 @@ my_theme = create_theme(
 
   ),
   adminlte_global(
-    #content_bg = "#D8DEE9",
+    content_bg = "#D8DEE9",
     #box_bg = "#D8DEE9", 
     #info_box_bg = "FFFFF"
   )
@@ -123,19 +126,21 @@ body <- dashboardBody(
           width = 4,
           box( title = tags$p("Current expenses",style = 'font-size:20px;'), 
                status = "warning",
+               #collapsible = T,
                solidHeader = F,
                width = NULL,
                #hr(),
-          plotOutput("IncomeExpense", height = 200)
+          plotOutput("IncomeExpense", height = 250)
         )),
         column(
           width = 8,
-          box( title = tags$p("Monthly expenses",style = 'font-size:20px;'), 
+          box( title = tags$p("Monthly income & expenses",style = 'font-size:20px;'), 
                status = "warning", 
+               #collapsible = T,
                solidHeader = F,
                width = NULL,
                #hr(),
-          plotOutput("MonthlyExpenses", height = 200)
+               plotlyOutput("MonthlyExpenses", height = 250)
           )
         )
       ),
@@ -166,7 +171,7 @@ body <- dashboardBody(
                solidHeader = F,
                width = NULL,
                #hr(),
-          plotOutput("TopExpenses")
+          plotlyOutput("TopExpenses")
         )
         )
         )
