@@ -154,7 +154,6 @@ server <- function(input, output) {
   
   
   ## Standardize colors based on expense category
-  
   dfcolors <- reactive({
     
               THIS_YEAR <- year(Sys.Date())
@@ -162,6 +161,7 @@ server <- function(input, output) {
               
               datcol <- df() %>% 
                           filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+                          droplevels() %>%
                           group_by(Category) %>%
                           summarise(Total_cost = sum(Cost)) %>%
                           mutate(Total_perc = Total_cost / sum(Total_cost) * 100) %>%
@@ -175,6 +175,17 @@ server <- function(input, output) {
   
   
   #scales::show_col(dfcolors$Color) # Visualize the colors
+  
+  # 4.2) User inputs
+  #~~~~~~~~~~~~~~~~~
+  observeEvent(df(),{
+    ## Define user-inputs
+    CATEGORIES <- unique(df()$Category)
+    
+    ## Define expense categories to be selected by the user based on its dataset
+    updatePickerInput(inputId = "Category", choices = CATEGORIES)
+  })
+  
   
   
   #############
@@ -291,7 +302,6 @@ server <- function(input, output) {
       
   })
 
-  
   
   ## Bar chart: Monthly income vs. expense (%) --------------------------
   output$MonthlyExpenses <- renderPlotly({
@@ -454,6 +464,7 @@ server <- function(input, output) {
     # Subset & summarize expenses by category
     tmp <- df() %>% 
       filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+      droplevels() %>%
       group_by(Category) %>%
       summarise(Total_cost = sum(Cost)) %>%
       mutate(Total_perc = Total_cost / sum(Total_cost) *100)
@@ -475,15 +486,16 @@ server <- function(input, output) {
       #scale_fill_brewer(palette = "BrBG") +
       # scale_fill_viridis_d(direction = -1) +
       #scale_fill_manual(values = lacroix_palette("PeachPear",type = "continuous")) +
-      scale_fill_manual(values = MYCOLORS)  +
+      #scale_fill_manual(values = MYCOLORS)  +
+      scale_fill_my_color_d("main") +
       theme(legend.position = "none",
             legend.title = element_text(size = 13, face = 'bold', color = 'gray15'),
             legend.text = element_text(size = 11,  color = 'gray30'))
     
   })
     
-    ## Lolipop chart: Top expenses ---------------------------------------------------
-    output$TopExpenses <- renderPlotly({
+  ## Lolipop chart: Top expenses ---------------------------------------------------
+  output$TopExpenses <- renderPlotly({
 
       ## Define time window
       TODAY <- Sys.Date()
@@ -493,12 +505,16 @@ server <- function(input, output) {
       
       ## Set default colors
       dfcolors <- dfcolors()
-      dfcolors <- data.frame(Category = dfcolors,
-                             Color = MYCOLORS[1:nrow(dfcolors)])
+      dfcolors <- data.frame(Category = dfcolors, 
+                             Color = my_palettes(name = "main", 
+                                                 type = 'continuous')[1:nrow(dfcolors)])
+      # dfcolors <- data.frame(Category = dfcolors,
+      #                        Color = MYCOLORS[1:nrow(dfcolors)])
 
       ## Filter & prepare data
       tmp <- df() %>%
              filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+             droplevels() %>%
              arrange(desc(Cost)) %>%
              slice(1:10) %>%
              mutate(ID = as.factor(1:nrow(.))) %>%
@@ -506,24 +522,27 @@ server <- function(input, output) {
 
 
     #   ## Go for the plot
-      
       ggplotly(tooltip = "text",
-               ggplot(tmp, aes(x = ID, y = Cost, fill = Category, label = Cost)) +
+               ggplot(tmp, aes(x = ID, y = Cost,  col = Category,fill = Category, label = Cost)) +
                  geom_segment(aes(x = ID, xend = ID, y = 0, yend = Cost, color = Category),
                               lwd = 4) +
-                 geom_point(aes(text = paste("Item: ", Obs)), size = 8, pch = 21, bg = tmp$Color, col = "white", stroke = 3) +
+                 geom_point(aes(text = paste("Item: ", Obs), col = Category), size = 5,  fill = 'white',pch = 21, stroke = 2) +
+                 #geom_point(aes(text = paste("Item: ", Obs)), size = 8, pch = 21,  col = "white", stroke = 3) +
+                 
                  coord_flip() +
-                 scale_color_manual(
-                   "Category", 
-                   values = c("Alimentação" = "#203a44", 
-                              "Casa" = "#2a9d8f",
-                              "Comunicação" = "#8ab17d",
-                              "Lazer" = "#e9c46a",
-                              "Outros" = "#EFD595",
-                              "Pessoal" = "#efb366",
-                              "Saude" = "#f4a261",
-                              "Transporte" = "#e76f51"), 
-                 ) +
+                 scale_colour_my_color_d("main") +
+
+                 # scale_color_manual(
+                 #   "Category", 
+                 #   values = c("Alimentação" = "#203a44", 
+                 #              "Casa" = "#2a9d8f",
+                 #              "Comunicação" = "#8ab17d",
+                 #              "Lazer" = "#e9c46a",
+                 #              "Outros" = "#EFD595",
+                 #              "Pessoal" = "#efb366",
+                 #              "Saude" = "#f4a261",
+                 #              "Transporte" = "#e76f51"), 
+                 # ) +
                  guides(color = "none") +
                  scale_y_continuous(expand = c(0, 0), limits=c(0, (100 + max(tmp$Cost)))) +
                  scale_x_discrete(limits = rev) +
@@ -571,8 +590,81 @@ server <- function(input, output) {
       
     })
 
+
+  
+  ## Line chart: Expense breakdown by category ---------------------------------------------------
+  output$CategoryBreakdown <- renderPlot({
     
     
+    ## Define time window
+    TODAY <- Sys.Date()
+    THIS_YEAR <- year(TODAY)
+    
+   
+   
+    ## Set default colors
+    dfcolors <- dfcolors()
+    dfcolors <- data.frame(Category = dfcolors, 
+                           Color_main = my_palettes(name = "main", 
+                                               type = 'continuous')[1:nrow(dfcolors)],
+                           Color_dark = my_palettes(name = "dark", 
+                                                    type = 'continuous')[1:nrow(dfcolors)])
+  
+    COLOR <- dfcolors %>%
+      filter(Category == input$Category) %>%
+      select(Color_main, Color_dark)
+    
+    
+    ## Filter & prepare data
+    tmp <- df() %>%
+      filter(Year %in% THIS_YEAR & Category == input$Category) %>%
+      droplevels() %>%
+      group_by(Month) %>%
+      summarize(Total = sum(Cost)) 
+    
+
+    
+    
+    ## Go for the plot
+    ggplot(tmp, aes(x = Month, y = Total, group = 1)) +
+      ggpattern::geom_area_pattern( 
+        pattern = "gradient", 
+        #fill = "#E69F00", 
+        alpha = 0,
+        pattern_alpha = 0,
+        pattern_fill  = "white",
+        pattern_fill2 = paste(COLOR[1])) +
+      geom_line(size = 1, col = paste(COLOR[2])) +
+      geom_point(shape = 21, size = 5, stroke=3, fill=paste(COLOR[2]), col = "white") +
+      geom_text(aes(label = paste("R$",round(Total,2))), 
+                position = position_dodge(width = 0), 
+                vjust = -1.5, 
+                size = 6,
+                fontface = "bold",
+                col = paste(COLOR[2])) +
+      labs(y = "Total expense (R$)") +
+      scale_x_discrete(expand = c(0.05,0.05)) +
+      theme_pubr() +
+      theme(#legend.position = 'bottom',
+        legend.position=c(0.80, 0.25),
+        
+        
+        axis.text = element_text(size = 18, face = 'bold', color = "gray50"),
+        #axis.text.y = element_blank(),
+        #axis.title.y = element_blank(),
+        axis.title = element_text(size = 20, 
+                                    face = 'bold', 
+                                    color = "gray35"),
+        
+        axis.ticks = element_line(colour = NULL), 
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_line(colour = "gray30"), 
+        axis.line = element_line(colour = "gray30"), 
+        axis.line.y = element_blank(),
+        plot.margin = unit(c(t=1,b=0,r=0,l=0), "cm"))
+    
+    
+  })
   
     
   

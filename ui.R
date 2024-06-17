@@ -14,12 +14,20 @@
 #~~~~~~~~~~~~~~~~
 library(shiny)
 library(shinydashboard)
+library(shinyWidgets)
 library(summaryBox)
 library(DT)
 library(stringr)
 library(plotly)
 
 
+#~~~~~~~~~~~~~~~~~~~~~~
+# Load helper functions
+#~~~~~~~~~~~~~~~~~~~~~~
+source('utilities/helper_fun.R')
+
+
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~
@@ -176,7 +184,60 @@ body <- dashboardBody(
           plotlyOutput("TopExpenses")
         )
         )
+        ),
+
+
+        fluidRow(), # Add extra row
+
+        fluidRow(
+          
+          column(
+           
+            width = 12,
+            #style='padding-top:15px;',
+            #br(),
+            
+            box( title = tags$p("Monthly expense breakdown by category", style = 'font-size:20px;'), 
+                 status = "warning", 
+                 solidHeader = F,
+                 collapsible = T,
+                 width = NULL,
+                 #hr(),
+                 
+                 
+                 dropdown(
+                   
+                   #tags$h3("List of Input"),
+                   
+                   pickerInput(inputId = 'Category',
+                               label = 'Select expense category:',
+                               choices = NULL, # We define the choices based on imported dataset, as different datasets can have different categories
+                               # choices = c("Alimentação",
+                               #             "Casa",
+                               #             "Comunicação",
+                               #             "Lazer",
+                               #             "Outros",
+                               #             "Pessoal",
+                               #             "Saude",
+                               #             "Transporte"),
+                               #selected = "Alimentação",
+                               options = list(`style` = "btn-warning")),
+                   
+                   
+                   style = "minimal", icon = icon("gear"),
+                   status = "success", width = "300px"
+                   # animate = animateOptions(
+                   #   enter = animations$fading_entrances$fadeInLeftBig,
+                   #   exit = animations$fading_exits$fadeOutRightBig)
+                   
+                   ), # End of dropdown menu
+                 
+                 plotOutput("CategoryBreakdown")
+            )
+          )
         )
+
+
       
     ),
     
