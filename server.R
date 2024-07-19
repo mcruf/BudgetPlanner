@@ -121,15 +121,13 @@ server <- function(input, output) {
     
     df() %>%
       group_by(Year, Month) %>%
-      #filter(Mes %in% MONTH) %>%
       summarise(TAI = unique(Income),
                 TAE = sum(Cost),
                 TAS = TAI - TAE) %>%
       summarise(TAI = round(sum(TAI),2),
                 TAE = round(sum(TAE),2),
-                TAS = round(sum(TAS)),2) %>%
-      filter(Year %in% THIS_YEAR) 
-    
+                TAS = round(sum(TAS)),2) 
+
   })
   
   

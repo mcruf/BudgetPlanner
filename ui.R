@@ -19,7 +19,11 @@ library(summaryBox)
 library(DT)
 library(stringr)
 library(plotly)
-
+library(lubridate)
+library(scales)
+library(treemapify)
+library(ggpubr)
+library(dplyr)
 
 #~~~~~~~~~~~~~~~~~~~~~~
 # Load helper functions
@@ -225,10 +229,10 @@ body <- dashboardBody(
                    
                    
                    style = "minimal", icon = icon("gear"),
-                   status = "success", width = "300px"
-                   # animate = animateOptions(
-                   #   enter = animations$fading_entrances$fadeInLeftBig,
-                   #   exit = animations$fading_exits$fadeOutRightBig)
+                   status = "success", width = "300px",
+                   animate = animateOptions(
+                     enter = animations$fading_entrances$fadeIn,
+                     exit = animations$fading_exits$fadeOut, duration = 1)
                    
                    ), # End of dropdown menu
                  
