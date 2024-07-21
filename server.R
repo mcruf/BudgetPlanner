@@ -89,19 +89,31 @@ server <- function(input, output) {
     
     
     # Rename factor levels of Month
-    df$Month <- dplyr::recode_factor(df$Month,
-                                     January = "Jan",
-                                     February = "Feb",
-                                     March = "Mar",
-                                     April = "Apr",
-                                     May = "May",
-                                     June = "Jun",
-                                     July = "Jul",
-                                     August = "Aug",
-                                     September = "Sep",
-                                     October  = "Oct",
-                                     November = "Nov",
-                                     December = "Dec")
+    # df$Month <- dplyr::recode_factor(df$Month,
+    #                                  January = "Jan",
+    #                                  February = "Feb",
+    #                                  March = "Mar",
+    #                                  April = "Apr",
+    #                                  May = "May",
+    #                                  June = "Jun",
+    #                                  July = "Jul",
+    #                                  August = "Aug",
+    #                                  September = "Sep",
+    #                                  October  = "Oct",
+    #                                  November = "Nov",
+    #                                  December = "Dec")
+    df$Month <- factor(df$Month, levels = c("Jan",
+                                            "Feb",
+                                            "Mar",
+                                            "Apr",
+                                            "May",
+                                            "Jun",
+                                            "Jul",
+                                            "Aug",
+                                            "Sep",
+                                            "Oct",
+                                            "Nov",
+                                            "Dec"))
     
     return(df)
     
@@ -126,7 +138,8 @@ server <- function(input, output) {
                 TAS = TAI - TAE) %>%
       summarise(TAI = round(sum(TAI),2),
                 TAE = round(sum(TAE),2),
-                TAS = round(sum(TAS)),2) 
+                TAS = round(sum(TAS)),2) %>%
+      filter(Year %in% THIS_YEAR)
 
   })
   
