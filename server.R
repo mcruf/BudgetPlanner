@@ -13,9 +13,6 @@
 
 # Data
 
-
-
-
 server <- function(input, output) {
   
   
@@ -125,11 +122,13 @@ server <- function(input, output) {
   # 3) Summarize data
   #~~~~~~~~~~~~~~~~~~~
   
+  
   annual_summary <- reactive({
     
     THIS_YEAR <- year(Sys.Date())
-    THIS_MONTH <- month(Sys.Date(), label = T)
-    
+    #THIS_MONTH <- month(Sys.Date(), label = T)
+    #SELECTED_MONTH <- input$monthelected
+
     
     df() %>%
       group_by(Year, Month) %>%
@@ -167,11 +166,16 @@ server <- function(input, output) {
   ## Standardize colors based on expense category
   dfcolors <- reactive({
     
-              THIS_YEAR <- year(Sys.Date())
-              THIS_MONTH <- month(Sys.Date(), label = T)
+              THIS_YEAR <- year(Sys.Date()) #select current year
+              #THIS_MONTH <- month(Sys.Date(), label = T) #select current month
+              
+              SELECTED_MONTH <- input$monthelected #select input month
+              idx <- match(SELECTED_MONTH, month(1:12, label=T)) #Look-up for vector index with matching month
+              MONTH_RANGE <- month(1:12, label=T)[1:idx] #define month range for analysis
               
               datcol <- df() %>% 
-                          filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+                          #filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>% 
+                          filter(Month %in% MONTH_RANGE & Year %in% THIS_YEAR) %>% #Filter from the start of the year until selected month
                           droplevels() %>%
                           group_by(Category) %>%
                           summarise(Total_cost = sum(Cost)) %>%
@@ -248,13 +252,15 @@ server <- function(input, output) {
   output$IncomeExpense <- renderPlot({
     
     THIS_YEAR <- year(Sys.Date())
-    THIS_MONTH <- month(Sys.Date(), label = T)
+    #THIS_MONTH <- month(Sys.Date(), label = T)
+    SELECTED_MONTH <- input$monthelected #select input month
 
     
-    ### Calculate incomve vs. expense in percentage
+    ### Calculate income vs. expense in percentage
     tmp <- df() %>%
-           filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
-           summarise(expenses = sum(Cost),
+           #filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+           filter(Month %in% SELECTED_MONTH & Year %in% THIS_YEAR) %>%
+                 summarise(expenses = sum(Cost),
                      income = unique(Income),
                      x = 1,
                      budget = x - (expenses/income),
@@ -467,14 +473,19 @@ server <- function(input, output) {
     
     # Select current month
     TODAY <- Sys.Date()
-    THIS_MONTH <- month(TODAY, label = T)
     THIS_YEAR <- year(TODAY)
+    #THIS_MONTH <- month(TODAY, label = T)
     
+    SELECTED_MONTH <- input$monthelected #select input month
+    idx <- match(SELECTED_MONTH, month(1:12, label=T)) #Look-up for vector index with matching month
+    MONTH_RANGE <- month(1:12, label=T)[1:idx] #define month range for analysis
+    
+
   
-    
     # Subset & summarize expenses by category
     tmp <- df() %>% 
-      filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+      #filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+      filter(Month %in% MONTH_RANGE & Year %in% THIS_YEAR) %>%
       droplevels() %>%
       group_by(Category) %>%
       summarise(Total_cost = sum(Cost)) %>%
@@ -510,9 +521,13 @@ server <- function(input, output) {
 
       ## Define time window
       TODAY <- Sys.Date()
-      THIS_MONTH <- month(TODAY, label = T)
       THIS_YEAR <- year(TODAY)
-
+      #THIS_MONTH <- month(TODAY, label = T)
+      
+      SELECTED_MONTH <- input$monthelected #select input month
+      #idx <- match(SELECTED_MONTH, month(1:12, label=T)) #Look-up for vector index with matching month
+      #MONTH_RANGE <- month(1:12, label=T)[1:idx] #define month range for analysis
+      
       
       ## Set default colors
       dfcolors <- dfcolors()
@@ -524,7 +539,8 @@ server <- function(input, output) {
 
       ## Filter & prepare data
       tmp <- df() %>%
-             filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+             #filter(Month %in% THIS_MONTH & Year %in% THIS_YEAR) %>%
+             filter(Month %in% SELECTED_MONTH & Year %in% THIS_YEAR) %>%
              droplevels() %>%
              arrange(desc(Cost)) %>%
              slice(1:10) %>%
@@ -687,8 +703,8 @@ server <- function(input, output) {
   output$mydata <- renderDataTable(datatable(df(),
                                              filter = 'top',
                                              options = list(
-                                               columnDefs = list(list(className = 'dt-center', targets = "_all")),
-                                               searching = TRUE)))
+                                             columnDefs = list(list(className = 'dt-center', targets = "_all")),
+                                             searching = TRUE)))
   
   
   

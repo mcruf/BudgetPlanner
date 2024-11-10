@@ -62,6 +62,51 @@ sidebar <-  dashboardSidebar(
               multiple=FALSE, 
               accept=(".csv")),
     
+    selectInput(
+      inputId = "monthelected",
+      label = "Select month of the year",
+      choices = c("January" = "Jan",
+                 "February" = "Feb",
+                 "March" = "Mar",
+                 "April" = "Apr",
+                 "May" = "May",
+                 "June" = "Jun",
+                 "July" = "Jul",
+                 "August" = "Aug",
+                 "September" = "Sep",
+                 "October" = "Oct",
+                 "November" = "Nov",
+                 "December" = "Dec")
+    ),
+    
+    # dateRangeInput("daterange", "Date range:",
+    #                start  = "2023-01-01",
+    #                end    = "2100-12-31",
+    #                format = "yyyy.mm.dd",
+    #                separator = " - "),
+    
+    # airDatepickerInput("dateRange",
+    #                    label = "Select period",
+    #                    value = "2024-11-01",
+    #                    #start = today(),
+    #                    #end = (today() + 90),
+    #                    maxDate = "2100-12-31",
+    #                    minDate = "2023-08-01",
+    #                    view = "months", #editing what the popup calendar shows when it opens
+    #                    minView = "year", #making it not possible to go down to a "days" view and pick the wrong date
+    #                    dateFormat = "yyyy-MM"
+    # ),
+
+    # 
+    # dateRangeInput('dateRange',
+    #                label = "Pédiode d'analyse : ",
+    #                format = "mm/yyyy",
+    #                language="fr",
+    #                start = Sys.Date(),
+    #                end=Sys.Date(),
+    #                startview = "year",
+    #                separator = " - "),
+    
     
     # Navigation Tabs: Each tab links to different content in the main body
     menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
